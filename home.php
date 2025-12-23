@@ -84,6 +84,25 @@ if(!$periode)
             </div>
         </div>
     </div>
+    <div class="col-md-3 mb-4" <?= is_hidden('laporan') ?>>
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Normal</div>
+                        <div class="h2 mb-2 font-weight-bold text-gray-800">
+                            <?= $db->get_var("SELECT COUNT(*) FROM tb_laporan WHERE hasil='Normal' AND periode='$periode'") ?>
+                        </div>
+                        <div><a class="btn btn-sm btn-info" href="?m=laporan">Selengkapnya</a></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-chart-bar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     
 </div>
 <div class="row mb-3">
