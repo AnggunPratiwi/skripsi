@@ -142,7 +142,10 @@ else if ($mod == 'rel_kriteria') {
             $hitung = hitungFahpTOPSIS($last_periode);
             dd($last_periode);
             foreach ($hitung['laporan'] as $key => $val) {
-                $db->query("INSERT INTO tb_laporan (periode, catatan, `rank`, kode_alternatif, hasil, total, umur, berat, tinggi) VALUES ('$periode', '$catatan', '$val[rank]', '$val[kode_alternatif]', '$val[hasil]', '$val[total]', '$val[umur]', '$val[berat]', '$val[tinggi]')");
+                $umur = !empty($val['umur']) ? floatval($val['umur']) : 'NULL';
+                $berat = !empty($val['berat']) ? floatval($val['berat']) : 'NULL';
+                $tinggi = !empty($val['tinggi']) ? floatval($val['tinggi']) : 'NULL';
+                $db->query("INSERT INTO tb_laporan (periode, catatan, `rank`, kode_alternatif, hasil, total, umur, berat, tinggi) VALUES ('$periode', '$catatan', '$val[rank]', '$val[kode_alternatif]', '$val[hasil]', '$val[total]', $umur, $berat, $tinggi)");
                 $id_laporan = $db->insert_id;
                 foreach ($hitung['tb_penilaian'][$key] as $kriteria => $v)
                     $db->query("INSERT INTO tb_penilaian(id_laporan, kode_kriteria, kategori, bobot) VALUES ('$id_laporan', '$kriteria', '{$v['kategori']}', '{$v['bobot']}')");
