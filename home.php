@@ -4,7 +4,24 @@
 <script src="https://code.highcharts.com/modules/export-data.js"></script>
 <script src="https://code.highcharts.com/modules/accessibility.js"></script>
 
+<?php
+$periode = _get('periode');
+if(!$periode)
+    $periode = $db->get_var("SELECT periode FROM tb_laporan ORDER BY periode DESC LIMIT 1");
+?>
+
 <h1>Dashboard</h1>
+<div class="mb-3">
+    <form class="form-inline">
+        <input type="hidden" name="m" value="home" />
+        <div class="form-group">
+            <label class="mr-2">Periode</label>
+            <select class="form-control" name="periode" onchange="this.form.submit()">
+                <?= get_periode_option($periode) ?>
+            </select>
+        </div>
+    </form>
+</div>
 <div class="row">
     <div class="col-md-3 mb-4" <?= is_hidden('kriteria') ?>>
         <div class="card border-left-primary shadow h-100 py-2">
@@ -48,6 +65,25 @@
             </div>
         </div>
     </div>
+    <div class="col-md-3 mb-4" <?= is_hidden('laporan') ?>>
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Stunting</div>
+                        <div class="h2 mb-2 font-weight-bold text-gray-800">
+                            <?= $db->get_var("SELECT COUNT(*) FROM tb_laporan WHERE hasil='Stunting' AND periode='$periode'") ?>
+                        </div>
+                        <div><a class="btn btn-sm btn-danger" href="?m=laporan">Selengkapnya</a></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-chart-bar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     
 </div>
 <div class="row mb-3">
@@ -64,7 +100,6 @@
         $categories = array();
         $data_total = array();
 
-        $periode = $db->get_var("SELECT periode FROM tb_laporan ORDER BY periode DESC LIMIT 1");
         $rows = $db->get_results("SELECT * FROM tb_laporan l INNER jOIN tb_alternatif a ON a.kode_alternatif=l.kode_alternatif WHERE periode='$periode' ORDER BY total DESC");
         foreach ($rows as $row) {
             $categories[$row->kode_alternatif] = $row->nama_balita;
