@@ -37,7 +37,7 @@ if ($mod == 'login') {
     header("location:index.php?m=login");
 }
 
-/** alternatif **/
+/* alternatif */
 elseif ($mod == 'alternatif_tambah') {
     $kode_alternatif = $_POST['kode_alternatif'];
     $nama_balita = $_POST['nama_balita'];
@@ -129,33 +129,80 @@ else if ($mod == 'rel_kriteria') {
         print_msg("Nilai kriteria berhasil diubah.", 'success');
     }
 } elseif ($mod == 'laporan_tambah') {
-    $periode = $_POST['periode'];
-    $catatan = $_POST['catatan'];
 
-    if ($periode == '' || $catatan == '')
+    $periode = esc_field($_POST['periode']);
+    $catatan = esc_field($_POST['catatan']);
+
+    if ($periode == '' || $catatan == '') {
         print_msg("Field bertanda * tidak boleh kosong!");
-    elseif ($db->get_results("SELECT * FROM tb_laporan WHERE periode='$periode'"))
-        print_msg("Periode sudah ada!");
-    else {
-        $last_periode = $db->get_var("SELECT periode FROM tb_laporan ORDER BY periode DESC LIMIT 1");
-        if ($last_periode) {
-            $hitung = hitungFahpTOPSIS($last_periode);
-            dd($last_periode);
-            foreach ($hitung['laporan'] as $key => $val) {
-                $umur = !empty($val['umur']) ? floatval($val['umur']) : 'NULL';
-                $berat = !empty($val['berat']) ? floatval($val['berat']) : 'NULL';
-                $tinggi = !empty($val['tinggi']) ? floatval($val['tinggi']) : 'NULL';
-                $db->query("INSERT INTO tb_laporan (periode, catatan, `rank`, kode_alternatif, hasil, total, umur, berat, tinggi) VALUES ('$periode', '$catatan', '$val[rank]', '$val[kode_alternatif]', '$val[hasil]', '$val[total]', $umur, $berat, $tinggi)");
-                $id_laporan = $db->insert_id;
-                foreach ($hitung['tb_penilaian'][$key] as $kriteria => $v)
-                    $db->query("INSERT INTO tb_penilaian(id_laporan, kode_kriteria, kategori, bobot) VALUES ('$id_laporan', '$kriteria', '{$v['kategori']}', '{$v['bobot']}')");
-            }
-        } else {
-            $db->query("INSERT INTO tb_laporan (periode, catatan, kode_alternatif) SELECT '$periode', '$catatan', kode_alternatif FROM tb_alternatif");
-            $db->query("INSERT INTO tb_penilaian (id_laporan, kode_kriteria) SELECT id_laporan, kode_kriteria FROM tb_laporan, tb_kriteria WHERE periode='$periode'");
-        }
-        redirect_js("index.php?m=laporan&periode=$periode");
+        return;
     }
+
+    // Cek periode sudah ada
+    if ($db->get_var("SELECT 1 FROM tb_laporan WHERE periode='$periode' LIMIT 1")) {
+        print_msg("Periode sudah ada!");
+        return;
+    }
+
+    // Ambil periode terakhir (jika ada)
+    $last_periode = $db->get_var("
+        SELECT periode 
+        FROM tb_laporan 
+        ORDER BY periode DESC 
+        LIMIT 1
+    ");
+
+    /* =====================================================
+       1. Buat laporan untuk SEMUA alternatif
+       ===================================================== */
+    $db->query("
+        INSERT INTO tb_laporan (periode, catatan, kode_alternatif, umur, berat, tinggi)
+        SELECT 
+            '$periode',
+            '$catatan',
+            a.kode_alternatif,
+            NULL,
+            NULL,
+            NULL
+        FROM tb_alternatif a
+    ");
+
+    /* =====================================================
+       2. Buat penilaian untuk setiap laporan & kriteria
+       ===================================================== */
+    $db->query("
+        INSERT INTO tb_penilaian (id_laporan, kode_kriteria)
+        SELECT 
+            l.id_laporan,
+            k.kode_kriteria
+        FROM tb_laporan l
+        CROSS JOIN tb_kriteria k
+        WHERE l.periode = '$periode'
+    ");
+
+    /* =====================================================
+       3. Copy data ukur dari periode terakhir (opsional)
+       ===================================================== */
+    if ($last_periode) {
+        $db->query("
+            UPDATE tb_laporan lnew
+            JOIN tb_laporan lold
+              ON lold.kode_alternatif = lnew.kode_alternatif
+             AND lold.periode = '$last_periode'
+            SET 
+                lnew.umur   = lold.umur,
+                lnew.berat  = lold.berat,
+                lnew.tinggi = lold.tinggi
+            WHERE lnew.periode = '$periode'
+        ");
+    }
+
+    /* =====================================================
+       4. Hitung FAHP–TOPSIS untuk periode BARU
+       ===================================================== */
+    hitungFahpTOPSIS($periode);
+
+    redirect_js("index.php?m=laporan&periode=$periode");
 } elseif ($mod == 'laporan_hapus') {
     $periode = $_GET['periode'];
     $db->query("DELETE FROM tb_penilaian WHERE id_laporan IN (SELECT id_laporan FROM tb_laporan WHERE periode='$periode')");

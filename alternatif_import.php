@@ -1,4 +1,4 @@
-[28/12/25 21.14.35] Kak Gusti Ilkom: </div>
+</div>
 <div class="row">
     <div class="col-md-6">
         <?php
@@ -133,4 +133,3 @@
         </form>
     </div>
 </div>
-[28/12/25 21.15.06] Anggun: Oke wait
